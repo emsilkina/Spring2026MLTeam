@@ -27,8 +27,8 @@ def VectortoList(new_vec):
 def architecture(new_list):
     weights = list()
     biases = list()
-    weights.append(None)
-    biases.append(None)
+    # weights.append(None)
+    # biases.append(None)
     network_length = len(new_list)
     for c in range(network_length-1):
         weight_matrix = 2 * np.random.rand(new_list[c+1], new_list[c]) - 1
@@ -70,47 +70,74 @@ def p_net(A_vec, weights, biases, inp):
 
 #TODO This is where you back propogate by calculating the deltas and updating the weights and biases, try different learning rates and see what works
 def one_epoch(training, weights, biases):
-    learningRate=0.1
-    mse=0
-    correct=0
+    learningRate = 0.1
+    mse = 0
+    correct = 0
 
-    for x,y in training:
-        activations=p_net(sigmoid, weights, biases, x)
-        predicted=activations[-1]
-        actual=x
-        delta=sigmoidPrime(activations[-1])*(predicted-actual)
+    for x, y in training:
+        activations = p_net(sigmoid, weights, biases, x)
+        predicted = activations[-1]
 
-        s=predicted-actual
-        error = predicted - y
-        s += np.mean(error**2)
-        mse+=s
+        delta = sigmoidPrime(predicted) * (predicted - y)
+        mse += np.mean((predicted - y)**2)
 
-        predictedNum = np.argMax(activations[-1])
-        expectedNum = np.argMax(training[-1])
+        predictedNum = np.argmax(predicted)
+        expectedNum = np.argmax(y)
+        if predictedNum == expectedNum:
+            correct += 1
 
-        if predictedNum==expectedNum:
-            correct+=1
+        for i in reversed(range(len(weights))):
+            prev_activation = activations[i]
+            weights[i] -= learningRate * np.dot(delta, prev_activation.T)
+            biases[i] -= learningRate * delta
+            if i != 0:
+                delta = np.dot(weights[i].T, delta) * sigmoidPrime(prev_activation)
 
-        i=len(weights)-1
-        while i>0:
-            newDelta=np.dot(weights[i].T, delta)*sigmoidPrime(activations[i-1])
-            weights[i]=weights[i]-learningRate*np.dot(delta,activations[i-1].T)
-            biases[i]=biases[i]-learningRate*delta
-            delta=newDelta
-            i-=1
-
-    mse = s/len(weights)
-    accuracy=correct/len(training)
+    mse /= len(training)
+    accuracy = correct / len(training)
 
     return weights, biases, mse, accuracy
 
+
 #TODO Run your model over some number of epochs should be at least 10 and display a graph that shows train and test accuracy on each Epoch
 def model(numEpochs, testFile, trainFile):
-    testinData=read_file(testFile)
-    trainingData=read_file(trainFile)
-    # for i in range(0, numEpochs):
+    testinData = read_file(testFile)
+    trainingData = read_file(trainFile)
 
+    weights, biases = architecture([784, 16, 16, 10])
 
+    trainAcc = []
+    testAcc = []
+    trainLoss = []
+
+    for epoch in range(numEpochs):
+        weights, biases, mse, acc = one_epoch(trainingData, weights, biases)
+        trainAcc.append(acc)
+        trainLoss.append(mse)
+
+        correct = 0
+        for x, y in testinData:
+            activations = p_net(sigmoid, weights, biases, x)
+            predictedNum = np.argmax(activations[-1])
+            expectedNum = np.argmax(y)
+            if predictedNum == expectedNum:
+                correct += 1
+        test_accuracy = correct / len(testinData)
+        testAcc.append(test_accuracy)
+
+        print(f"Epoch {epoch+1}: Train Acc={acc:.3f}, Test Acc={test_accuracy:.3f}")
+
+    epochs = range(1, numEpochs + 1)
+    plt.figure()
+    plt.plot(epochs, trainAcc, label="Train Accuracy")
+    plt.plot(epochs, testAcc, label="Test Accuracy")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.title("Training vs Test Accuracy")
+    plt.legend()
+    plt.show()
+
+model(10, './mnist_train.csv', './mnist_test.csv')
 
 
 
