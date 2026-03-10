@@ -70,7 +70,7 @@ def p_net(A_vec, weights, biases, inp):
 
 #TODO This is where you back propogate by calculating the deltas and updating the weights and biases, try different learning rates and see what works
 def one_epoch(training, weights, biases):
-    learningRate = 0.1
+    learningRate = 0.01
     mse = 0
     correct = 0
 
@@ -137,7 +137,7 @@ def model(numEpochs, testFile, trainFile):
     plt.legend()
     plt.show()
 
-model(10, './mnist_train.csv', './mnist_test.csv')
+model(100, './mnist_train.csv', './mnist_test.csv')
 
 
 
