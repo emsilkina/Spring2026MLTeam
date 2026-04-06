@@ -5,16 +5,61 @@ import matplotlib.pyplot as plt
 
 
 def softmax(x, axis=-1): #Input is a numpy matrix like [[1 2 3] [4 5 6]]. Over the axis you need to perform softmax on the values and return the resulting arrays where the values add up to 1.
-    return x
+    x = np.array(x)
+    
+    e_x = np.exp(x)
+    sum_e_x = np.sum(e_x, axis=axis, keepdims=True)
+    
+    return e_x / sum_e_x
 
 
 def make_causal_mask(seq_len): #Input is a positive integer, 
     #Output should be a nxn array of booleans where n = seq_len. The values should be True if the position should be masked out and should be False if the position should not be masked out.
-    return np.zeros((seq_len, seq_len))
+    mask = np.zeros((seq_len, seq_len), dtype=bool)
+    
+    for i in range(seq_len):
+        for j in range(seq_len):
+            if j > i:
+                mask[i, j] = True
+                
+    return mask
 
 
 def scaled_dot_product_attention(Q, K, V, mask): #Input is the Query, Key, and Value matrices and mask which if None means no masking otherwise means yes masking. 
     #There should be two outputs. #1 is output which what you would add to each embedding. #2 is the weights which is the weights AFTER softmax but before multiplying by V
+    n = len(Q)
+    dk = len(Q[0])
+    
+    scores = np.zeros((n, n))
+    
+    for i in range(n):
+        for j in range(n):
+            dot = 0
+            for k in range(dk):
+                dot += Q[i][k] * K[j][k]
+            scores[i][j] = dot / np.sqrt(dk)
+    
+    if mask is not None:
+        for i in range(n):
+            for j in range(n):
+                if mask[i][j]:
+                    scores[i][j] = -1e9
+    
+    weights = np.zeros((n, n))
+    for i in range(n):
+        row = scores[i]
+        exp_row = np.exp(row)
+        sum_exp = np.sum(exp_row)
+        weights[i] = exp_row / sum_exp
+    
+    dv = len(V[0])
+    output = np.zeros((n, dv))
+    
+    for i in range(n):
+        for j in range(n):
+            for k in range(dv):
+                output[i][k] += weights[i][j] * V[j][k]
+    
     return output, weights
 
 #Put all the token outputs into a sentence
